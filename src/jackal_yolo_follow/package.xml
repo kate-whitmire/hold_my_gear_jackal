@@ -4,7 +4,7 @@
   <name>jackal_yolo_follow</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="tylerjhom@gmail.com">robot</maintainer>
+  <maintainer email="katewhitmire21@gmail.com">robot</maintainer>
   <license>TODO: License declaration</license>
 
   <test_depend>ament_copyright</test_depend>
