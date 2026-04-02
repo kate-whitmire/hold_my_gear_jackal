@@ -28,7 +28,7 @@ Navigates a robot from an initial pose to a goal pose.
 '''
 
 JACKAL_NAMESPACE = 'j100_0000'
-FOLLOW_GOAL_TOPIC = 'follow_goal' # topic YOLO node will publish PoseStamped to
+FOLLOW_GOAL_TOPIC = 'follow_goal'   # topic YOLO node will publish PoseStamped to
 
 def main():
   # Start the ROS 2 Python Client Library
@@ -39,17 +39,17 @@ def main():
 
   navigator = BasicNavigator(namespace = JACKAL_NAMESPACE)
 
-  # Wait for navigation to fully activate
+  # Wait for navigation to fully activate. Use this line if autostart is set to true.
   node.get_logger().info('Waiting for Nav2 to become active...')
   navigator.waitUntilNav2Active(localizer='slam_toolbox')
   node.get_logger().info('Nav2 activated; waiting for follow goals...')
 
-  latest_goal_msg = {'msg': None} # Stores latest goal_msg
+  latest_goal_msg = {'msg': None}  # Stores latest goal_msg
   have_active_task = False
-  i = 0 # Feedback counter
+  i = 0   # Feedback counter
 
   '''
-  ## For use in localization
+  # # For use in localization # #
 
   # Set the robot's initial pose if necessary
   # initial_pose = PoseStamped()
@@ -74,7 +74,7 @@ def main():
   '''
 
   '''
-  ## For sending specific locations to robot
+  # # For sending specific locations to robot # #
 
   goal_pose = PoseStamped()
   goal_pose.header.frame_id = 'map'
@@ -96,7 +96,7 @@ def main():
   navigator.goToPose(goal_pose)
   '''
 
-  ## For Receiving Goals from Node
+  # # For Receiving Goals from Node # #
   def follow_goal_callback(msg: PoseStamped):
      latest_goal_msg['msg'] = msg
      node.get_logger().info(
@@ -124,7 +124,9 @@ def main():
 
            # Assumes that position is already on the map
            goal_pose = PoseStamped()
-           goal_pose.header.frame_id = 'map'
+         #   goal_pose.header.frame_id = 'map'
+           goal_pose.header.frame_id = 'base_link'
+
            goal_pose.header.stamp = navigator.get_clock().now().to_msg()
            goal_pose.pose = msg.pose
 
@@ -150,18 +152,19 @@ def main():
 
             # If we get close enough, we can move on
             if feedback.distance_remaining < 0.5:
-                node.get_logger.info('Good enough for me!')
+                node.get_logger().info('Good enough for me!')
                 navigator.cancelTask()
                 have_active_task = False
                 continue
         
             # Navigation timeout
-            if Duration.from_msg(feedback.navigation_time) > Duration(seconds=300.0): # Changed max duration from 600sec to 300sec
-                node.get_logger.info('Took too long, canceling task.')
+            if Duration.from_msg(feedback.navigation_time) > Duration(seconds=300.0):  # Changed max duration from 600sec to 300sec
+                node.get_logger().info('Took too long, canceling task.')
                 navigator.cancelTask()
                 have_active_task = False
                 continue
 
+            # # Adjust nav position if not working
             # if Duration.from_msg(feedback.navigation_time) > Duration(seconds=120.0):
             #     node.get_logger.info('Taking a while, adjusting the goal position...')
             #     preempt_goal = PoseStamped()
@@ -186,7 +189,7 @@ def main():
            have_active_task = False
   
   except KeyboardInterrupt:
-     node.get_logger.info('Ctrl+C detected, canceling navigation task...')
+     node.get_logger().info('Ctrl+C detected, canceling navigation task...')
      navigator.cancelTask()
 
 
@@ -201,4 +204,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-
