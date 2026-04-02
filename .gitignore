@@ -1,3 +1,7 @@
 **/build
 **/install
 **/log
+**/clearpath_common
+**/clearpath_msgs
+**/clearpath_config
+
