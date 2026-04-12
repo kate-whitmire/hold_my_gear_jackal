@@ -1,4 +1,6 @@
+import os
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = 'jackal_yolo_follow'
 
@@ -10,11 +12,12 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='robot',
-    maintainer_email='tylerjhom@gmail.com',
+    maintainer_email='katewhitmire21@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     extras_require={
