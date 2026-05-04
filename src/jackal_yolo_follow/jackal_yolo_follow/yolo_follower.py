@@ -20,19 +20,24 @@ DEPTH_TOPIC = "/camera/camera/depth/image_rect_raw"
 CMD_TOPIC   = "/j100_0000/cmd_vel"
 MODEL_PATH  = "/home/robot/yolo11n.pt"
 
-TARGET_DISTANCE = 1.5
+TARGET_DISTANCE = 1.5 # Leaving this for now
+
+MIN_DISTANCE = 0.5  # Believe it or not, new line : 0.8 --> 0.5
 
 MAX_SPEED = 0.7
 MAX_TURN  = 1.2
+MAX_REVERSE = 0.3  # New line
+DEAD_ZONE = 0.5  # Was 1.0
 
 RUN_RATE = 0.2
 
 ## Smoothing
-VEL_ALPHA = 0.15 # smoothing filter strength
+VEL_ALPHA = 0.25 # smoothing filter strength; changing from 0.15 to 0.4 for snappier response
+# 0.4 was WAY too high, switched to 0.25
 STOP_TIMEOUT = 0.8 # seconds without detection before stopping
 DECAY = 0.85 # slowdown factor when target lost
 
-EDGE_LOCK = 0.70
+EDGE_LOCK = 0.3 # Changed from 70% --> 30%
 TURN_EXP  = 2.2
 
 
@@ -47,6 +52,7 @@ class YoloFollower(Node):
         self.last_seen = time.time()
         self.last_cmd = np.array([0.0, 0.0])
         self.last_run = 0.0
+        self.last_depth = TARGET_DISTANCE # New test for robot run-ins
 
         self.cmd_pub = self.create_publisher(TwistStamped, CMD_TOPIC, 10)
         self.create_subscription(Image, COLOR_TOPIC, self.image_cb, 10)
@@ -87,7 +93,23 @@ class YoloFollower(Node):
             if cy >= self.latest_depth.shape[0] or cx >= self.latest_depth.shape[1]:
                 continue
 
-            d = float(self.latest_depth[cy, cx])
+            # d = float(self.latest_depth[cy, cx])
+
+            # Averaging depth over a patch
+            # patch = self.latest_depth[max(0,cy-5):cy+5, max(0,cx-5):cx+5]
+            # valid = patch[(~np.isnan(patch)) & (patch > 0.4)]
+            # if len(valid) == 0:
+            #     continue
+            # d = float(np.median(valid))
+
+            # New patch attempt so robot stops driving into my legs. 
+            # This takes a larger patch and the closest reading instead of the median
+            patch = self.latest_depth[max(0,cy-15):cy+15, max(0,cx-15):cx+15]
+            valid = patch[(~np.isnan(patch)) & (patch > 0.5) & (patch < 8.0)]
+            if len(valid) == 0:
+                continue
+            d = float(np.min(valid))  # use minimum instead of median
+
             if np.isnan(d) or d < 0.4:
                 continue
 
@@ -95,17 +117,50 @@ class YoloFollower(Node):
                 best = d
                 closest = cx, d, frame.shape[1]
 
+        # if closest:
+        #     self.last_seen = time.time()
+        #     self.track(closest)
+        # else:
+        #     self.idle()
+
+        # New -- if the robot stops getting distance readings it stops
         if closest:
             self.last_seen = time.time()
+            self.last_depth = closest[1]
             self.track(closest)
         else:
-            self.idle()
+            if hasattr(self, 'last_depth') and self.last_depth < TARGET_DISTANCE:
+                # was close, now getting no valid readings — stop and hold
+                self.last_cmd[:] = 0
+                self.publish(self.last_cmd)
+            else:
+                self.idle()
 
 
     ## Follow
     def track(self, person):
 
         cx, depth, width = person
+
+        # Hard stop if too close (somehow this is new *eyeroll* tyler)
+        # if depth < MIN_DISTANCE:
+        #     self.last_cmd[:] = 0
+        #     self.publish(self.last_cmd)
+        #     return
+
+        # This one stops is ANYTHING is in the view of the camera
+        # Takes a strip in the center of the fov and looks for things in the way
+        if self.latest_depth is not None:
+            center_patch = self.latest_depth[
+                self.latest_depth.shape[0]//2 - 20 : self.latest_depth.shape[0]//2 + 20,
+                self.latest_depth.shape[1]//2 - 20 : self.latest_depth.shape[1]//2 + 20
+            ]
+            valid = center_patch[(~np.isnan(center_patch)) & (center_patch > 0.1)]
+            if len(valid) > 0 and float(np.min(valid)) < MIN_DISTANCE:
+                self.last_cmd[0] = 0 # Only forward vel stops, can still turn & reverse
+                self.publish(self.last_cmd)
+                print('Something is too close!')
+                return
 
         center_error = (cx - width/2) / (width/2)
         dist_error = depth - TARGET_DISTANCE
@@ -117,7 +172,13 @@ class YoloFollower(Node):
         else:
             turn = np.sign(center_error) * ((mag ** TURN_EXP) * MAX_TURN)
 
-        forward = np.clip(dist_error * 0.6, 0.0, MAX_SPEED)
+        # forward = np.clip(dist_error * 0.6, 0.0, MAX_SPEED)
+        # Replacing line above to add back-up feature
+        # forward = np.clip(dist_error * 0.6, -MAX_REVERSE, MAX_SPEED) # works well, but rocks back and forth
+        if abs(dist_error) < DEAD_ZONE:
+            forward = 0.0
+        else:
+            forward = np.clip(dist_error * 0.6, -MAX_REVERSE, MAX_SPEED)
 
         target = np.array([forward, -turn])
 
