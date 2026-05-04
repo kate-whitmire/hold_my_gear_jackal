@@ -18,6 +18,28 @@ def generate_launch_description():
     return LaunchDescription([
         realsense_launch,
 
+        TimerAction(
+            period = 3.0,
+            actions = [
+                Node(
+                    package='depthimage_to_laserscan',
+                    namespace='j100_0000',
+                    executable='depthimage_to_laserscan_node',
+                    name='sim', # ??
+                    remappings = [
+                        ('depth', '/camera/camera/depth/image_rect_raw'),
+                        ('depth_camera_info', '/camera/camera/depth/camera_info'),
+                        ('scan', '/j100_0000/sensors/lidar2d_0/scan'),
+                    ],
+                    parameters = [{
+                        'range_min': 0.3,
+                        'range_max': 5.0,
+                        'output_frame': 'base_link'
+                    }]
+                )
+            ]
+        ),
+
         ExecuteProcess(
             cmd=['bash', '-c', # took out 'xterm', '-e', from the beginning of line
                 'source ~/vision_venv/bin/activate && '                
