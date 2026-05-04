@@ -27,6 +27,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'circle_drive = jackal_yolo_follow.circle_drive:main',
+            'follow_mode_gui_backup = jackal_yolo_follow.follow_mode_gui_backup:main',            
             'follow_mode_gui = jackal_yolo_follow.follow_mode_gui:main',
             'yolo_follower = jackal_yolo_follow.yolo_follower:main',
             'nav_to_pose_test = jackal_yolo_follow.nav_to_pose_test:main',
