@@ -32,10 +32,10 @@ DEAD_ZONE = 0.5  # Was 1.0
 RUN_RATE = 0.2
 
 ## Smoothing
-VEL_ALPHA = 0.25 # smoothing filter strength; changing from 0.15 to 0.4 for snappier response
-# 0.4 was WAY too high, switched to 0.25
-STOP_TIMEOUT = 0.8 # seconds without detection before stopping
-DECAY = 0.85 # slowdown factor when target lost
+VEL_ALPHA = 0.25    # smoothing filter strength; changing from 0.15 to 0.4 for snappier response
+                    # 0.4 was WAY too high, switched to 0.25
+STOP_TIMEOUT = 0.8  # seconds without detection before stopping
+DECAY = 0.85        # slowdown factor when target lost
 
 EDGE_LOCK = 0.3 # Changed from 70% --> 30%
 TURN_EXP  = 2.2
