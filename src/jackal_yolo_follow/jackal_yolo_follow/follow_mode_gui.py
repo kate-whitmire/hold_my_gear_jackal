@@ -1,20 +1,27 @@
 import sys, os, signal, subprocess
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QMessageBox
 from PyQt5.QtCore import Qt
+from jackal_yolo_follow.gui_styles import STYLESHEET, PasswordDialog, create_main_widget
+
+password = None
+
+class DemoWidget(QWidget):
+    def closeEvent(self, event):
+        close_all_nodes()
+        event.accept()
 
 procs = {}
 
 CMDS = { 
     'yolo_follower': ['ros2', 'launch', 'jackal_yolo_follow', 'regular_follow_mode_launch.py'],
     
-    'circle_drive' : []
-    # Now I have to write an executable to make the robot drive in a circle
-    # *Face palm*
+    'circle_drive': ['ros2', 'run', 'jackal_yolo_follow', 'circle_drive'],
+
+    'open_rviz' : ['ros2', 'launch', 'jackal_yolo_follow', 'rviz_launch.py']
 
 }
 
-NODE_NAMES = ['yolo_follower', 'circle_drive']
-
+NODE_NAMES = ['yolo_follower', 'circle_drive', 'open_rviz']
 
 def start(name, password):
     p = procs.get(name)
@@ -24,122 +31,71 @@ def start(name, password):
     procs[name] = subprocess.Popen([
         'gnome-terminal', '--',
         'bash', '-c',
-        f'sshpass -p {password} ssh robot@10.10.0.7'
+        f'sshpass -p {password} ssh robot@10.10.0.7 '
+        # f'"source ~/.bashrc && ' # CANNOT source bashrc bc it's a non-interactive terminal
+        f'"export ROS_DOMAIN_ID=0 && '
+        f'source /etc/clearpath/setup.bash && '
         f'source /opt/ros/jazzy/setup.bash && '
-        f'source ~/hold_my_gear_jackal/install/setup.bash && '
-        f'{cmd_str}; exec bash'        
+        f'source ~/clearpath_ws/install/setup.bash && '
+        # f'{cmd_str} 2>&1 | grep -v \'queue is full\'; exec bash"'
+        f'{cmd_str}; exec bash"'
     ])
 
-
-def stop(name):
-    p = procs.get(name)
-    if not p:
-        return
-    try:
-        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-        try:
-            p.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-    except Exception:
-        pass
-    procs.pop(name, None)
-
+# def open_rviz():
+#     subprocess.Popen([
+#         'gnome-terminal', '--',
+#         'bash', '-c',
+#         'source ~/hold_my_gear_jackal/setup.bash && '
+#         'ros2 launch clearpath_viz view_navigation.launch.py namespace:=j100_0000; exec bash'
+#     ])
 
 def close_all_nodes():
-    for n in NODE_NAMES:
-        stop(n)
+    print('Closing all nodes...')
+
+    # Kill lingering ROS nodes
+    if password:
+        subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f yolo_follower'])
+        subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f slam_toolbox'])
+        subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f launch_ros'])
+        subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f realsense'])
+    subprocess.run(['pkill', '-f', 'gnome-terminal'])
 
 
 def main():
-
-# Also an option to add function stop_all_nodes for gazebo or anything 
-# running in the background, could be relevant I guess if we want to pull up rviz. 
-# Actually I do want rviz.
-# Actually I think yolo_follower already pulls up rviz. Have to verify.
-
     app = QApplication(sys.argv)
+    global password
 
-    # Ask for password when GUI opens
-    password, ok = QInputDialog.getText(
-        None,
-        'Robot Connection',
-        'Enter robot password:',
-        QLineEdit.Password
-    )
-    if not ok:
-        sys.exit()
+    while True:
+        dialog = PasswordDialog()
+        if dialog.exec_() != QDialog.Accepted:
+            sys.exit()
+        password = dialog.get_password()
 
-    w = QWidget()
-    w.setWindowTitle("Jackal Demo")
-    w.setStyleSheet("""
-        QWidget {
-            background: qlineargradient(
-                x1:0, y1:0, x2:1, y2:1,
-                stop:0 #667eea, stop:1 #764ba2
-            );
-        }
-        QLabel {
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-        }
-        QLabel#subtitle {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-            font-weight: normal;
-        }
-        QPushButton {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
-            text-align: center;
-        }
-        QPushButton:hover {
-            background: rgba(255, 255, 255, 0.35);
-        }
-        QPushButton:pressed {
-            background: rgba(255, 255, 255, 0.15);
-        }
-        QPushButton#danger {
-            background: rgba(255, 100, 100, 0.3);
-        }
-        QPushButton#danger:hover {
-            background: rgba(255, 100, 100, 0.5);
-        }
-    """)
+        result = subprocess.run(
+            ['sshpass', '-p', password, 'ssh',
+             '-o', 'ConnectTimeout=5',
+             '-o', 'StrictHostKeyChecking=no',
+             'robot@10.10.0.7', 'echo connected'],
+            capture_output=True
+        )
 
-    layout = QVBoxLayout(w)
-    layout.setContentsMargins(24, 24, 24, 24)
-    layout.setSpacing(8)
+        if result.returncode == 0:
+            break
+        else:
+            QMessageBox.warning(None, 'Connection Failed', 'Wrong password or could not connect. Try again.')
 
-    title = QLabel("Jackal Demo")
-    subtitle = QLabel("UGV Control Panel")
-    subtitle.setObjectName("subtitle")
-    layout.addWidget(title)
-    layout.addWidget(subtitle)
-    layout.addSpacing(8)
-
-    button1 = QPushButton('Start: Follow Mode')
-    button1.clicked.connect(lambda: start('yolo_follower'))
-    layout.addWidget(button1)
-
-    button2 = QPushButton('Start: Drive in Circle')
-    button2.clicked.connect(lambda: start('circle_drive'))
-    layout.addWidget(button2)
-
-    b = QPushButton('Close All Nodes')
-    b.setObjectName("danger")
-    b.clicked.connect(close_all_nodes)
-    layout.addWidget(b)
-
-    w.setLayout(layout)
-    w.resize(300, 200)
+    w = create_main_widget({
+        'yolo_follower': lambda: start('yolo_follower', password),
+        'circle_drive': lambda: start('circle_drive', password),
+        'open_rviz' : lambda: start('open_rviz', password),
+        'close_all': close_all_nodes
+    })
+    w.resize(400, 300)
+    center = QApplication.primaryScreen().geometry().center()
+    w.move(center - w.rect().center())
     w.show()
     sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
