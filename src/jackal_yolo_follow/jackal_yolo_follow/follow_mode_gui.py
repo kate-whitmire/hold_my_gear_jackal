@@ -17,7 +17,7 @@ CMDS = {
     
     'circle_drive': ['ros2', 'run', 'jackal_yolo_follow', 'circle_drive'],
 
-    'open_rviz' : ['ros2', 'launch', 'jackal_yolo_follow', 'rviz_launch.py']
+    'open_rviz' : ['ros2', 'launch', 'clearpath_nav2_demos', 'slam.launch.py']
 
 }
 
@@ -41,13 +41,14 @@ def start(name, password):
         f'{cmd_str}; exec bash"'
     ])
 
-# def open_rviz():
-#     subprocess.Popen([
-#         'gnome-terminal', '--',
-#         'bash', '-c',
-#         'source ~/hold_my_gear_jackal/setup.bash && '
-#         'ros2 launch clearpath_viz view_navigation.launch.py namespace:=j100_0000; exec bash'
-#     ])
+def open_rviz():
+    start('open_rviz', password)
+    subprocess.Popen([
+        'gnome-terminal', '--',
+        'bash', '-c',
+        'source ~/hold_my_gear_jackal/setup.bash && '
+        'ros2 launch clearpath_viz view_navigation.launch.py namespace:=j100_0000; exec bash'
+    ])
 
 def close_all_nodes():
     print('Closing all nodes...')
@@ -58,6 +59,8 @@ def close_all_nodes():
         subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f slam_toolbox'])
         subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f launch_ros'])
         subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f realsense'])
+        subprocess.run(['sshpass', '-p', password, 'ssh', 'robot@10.10.0.7', 'pkill -9 -f circle_drive'])
+
     subprocess.run(['pkill', '-f', 'gnome-terminal'])
 
 
@@ -87,7 +90,7 @@ def main():
     w = create_main_widget({
         'yolo_follower': lambda: start('yolo_follower', password),
         'circle_drive': lambda: start('circle_drive', password),
-        'open_rviz' : lambda: start('open_rviz', password),
+        'open_rviz' : lambda: open_rviz(),
         'close_all': close_all_nodes
     })
     w.resize(400, 300)
