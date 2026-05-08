@@ -1,18 +1,41 @@
 # Robot Setup
 
+Robot setup has already been completed on the NRG Jackal at UT Austin; you can follow step 1 and then skip to step 8.
+
 The robot runs all ROS nodes for the demo. The relevant workspace on the robot is `~/clearpath_ws`, which contains the `jackal_yolo_follow` package cloned from this repository.
 
-## 1. Base System Assumptions
+## System Assumptions
 
-The Jackal image is assumed to provide:
+- The user must have an ip address through the wireguard vpn service.
+- This system was built with Ubuntu and is untested with other Linux distributions.
 
-- ROS 2 Jazzy
-- Clearpath platform services
-- Nav2 and SLAM Toolbox
-- A workspace at `~/clearpath_ws`
+## 1. SSH into Robot
 
-If your image differs, adapt the paths accordingly.
+Open up the hood of the jackal to access the main onboard computer. Plug in a keyboard and monitor, then sign in:
 
+```
+ssh robot@10.10.0.7  # ip for NRG Jackal
+```
+
+Add your ip address to the robot.yaml file so you can connect:
+
+'''
+nano ~/clearpath_ws/robot.yaml
+
+serial_number: j100-0000
+version: 0
+system:
+  hosts:
+    - hostname: cpr-j100-0000
+      ip: 10.10.0.7
+    - hostname: <your-computer>
+      ip: <your-ip-address>
+'''
+
+Save the file, then SSH into the robot on your computer:
+```
+ssh -X robot@10.10.0.7
+```
 
 ## 2. Install ROS 2 Jazzy
 
