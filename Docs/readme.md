@@ -12,8 +12,8 @@ A person-following demo for the Clearpath Robotics Jackal using a RealSense D435
 
 ## Quick Start
 
-1. Set up the robot (`clearpath_ws`) → see [Robot Setup](docs/03_robot_setup.md)
-2. Set up your laptop (`hold_my_gear_jackal`) → see [Laptop Setup](docs/02_laptop_setup.md)
+1. Set up the robot (`clearpath_ws`) → see [Robot Setup](03_robot_setup.md)
+2. Set up your laptop (`hold_my_gear_jackal`) → see [Laptop Setup](02_laptop_setup.md)
 3. Double-click the **Jackal Demo** desktop icon, enter the robot password, and go
 
 ## Documentation
