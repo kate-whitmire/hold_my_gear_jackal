@@ -1,6 +1,6 @@
 # Hold My Gear — Jackal Person Following Demo
 
-A person-following demo for the Clearpath Robotics Jackal using a RealSense D435 depth camera and YOLO object detection. The demo is operated from a laptop via a simple GUI — no terminal knowledge required for the end user.
+A person-following demo for the Clearpath Robotics Jackal using a RealSense D435 depth camera and YOLO object detection. The demo is operated from a laptop via a simple GUI — no terminal knowledge required for the end user. The robot setup is already completed for use on the NRG Jackal at UT Austin.
 
 ![Jackal Demo](Jackal%20Image.png)
 
@@ -20,10 +20,9 @@ A person-following demo for the Clearpath Robotics Jackal using a RealSense D435
 
 | Doc | Description |
 |-----|-------------|
-| [01 — Overview](docs/01_overview.md) | Repo layout, system overview, and how it works |
-| [02 — Laptop Setup](docs/02_laptop_setup.md) | Setting up the offboard operator computer |
-| [03 — Robot Setup](docs/03_robot_setup.md) | Setting up the Jackal's onboard computer |
-| [04 — Running the Demo](docs/04_running_the_demo.md) | How to operate the demo and troubleshooting |
+| [01 — Overview](01_overview.md) | Repo layout, system overview, and how it works |
+| [02 — Laptop Setup](02_laptop_setup.md) | Setting up the offboard operator computer |
+| [03 — Robot Setup](03_robot_setup.md) | Setting up the Jackal's onboard computer |
 
 ## Requirements
 
